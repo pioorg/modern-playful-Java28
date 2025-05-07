@@ -17,15 +17,6 @@
 package org.przybyl;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import co.elastic.clients.transport.ElasticsearchTransport;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -45,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers(parallel = true)
 public class EnterpriseySearcherIntTest {
 
-    private static final String ELASTICSEARCH_VERSION = "9.0.0";
+    private static final String ELASTICSEARCH_VERSION = "9.5.1";
     private static final String INDEX_NAME = "catalogue";
 
     @Container
@@ -80,32 +71,10 @@ public class EnterpriseySearcherIntTest {
         String textEncoderUrl = "http://" + textEncoderContainer.getHost() + ":" + textEncoderContainer.getMappedPort(8080) + "/v1/embeddings";
         EnterpriseySearcher.setEncoderUrl(textEncoderUrl);
 
-        // Create the low-level client with SSL context
-        RestClientBuilder builder = RestClient.builder(
-            HttpHost.create("https://" + elasticsearchContainer.getHttpHostAddress())
-        );
-
-        // Configure basic authentication
-        builder.setHttpClientConfigCallback(httpClientBuilder -> {
-            httpClientBuilder.setSSLContext(elasticsearchContainer.createSslContextFromCa());
-            BasicCredentialsProvider credentialsProvider =
-                new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(
-                AuthScope.ANY,
-                new UsernamePasswordCredentials("elastic", "changeme")
-            );
-            return httpClientBuilder.setDefaultCredentialsProvider(
-                credentialsProvider
-            );
-        });
-
-        // Create the transport with a Jackson mapper
-        RestClient restClient = builder.build();
-        JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper();
-        ElasticsearchTransport transport = new RestClientTransport(restClient, jsonpMapper);
-
-        // Create the API client
-        esClient = new ElasticsearchClient(transport);
+        esClient = ElasticsearchClient.of(b -> b
+            .host("https://" + elasticsearchContainer.getHttpHostAddress())
+            .sslContext(elasticsearchContainer.createSslContextFromCa())
+            .usernameAndPassword("elastic", System.getenv().getOrDefault("ESPSWD", "changeme")));
 
         importElasticsearchData();
     }
