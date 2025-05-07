@@ -66,12 +66,9 @@ public class EnterpriseySearcher {
 
     static List<String> obtainQueries() {
         List<String> queries = new ArrayList<>();
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter text to search: ");
         String searchText;
-        while (!(searchText = scanner.nextLine()).isBlank()) {
+        while (!(searchText = IO.readln("Enter text to search: ")).isBlank()) {
             queries.add(searchText);
-            System.out.print("Enter text to search: ");
         }
         return queries;
     }
