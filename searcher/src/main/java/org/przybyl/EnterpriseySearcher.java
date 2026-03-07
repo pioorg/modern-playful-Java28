@@ -43,8 +43,8 @@ public class EnterpriseySearcher {
     private static final int TOP_K = 5;
 
     public static void main(String[] args) {
-        List<String> queries = obtainQueries();
-//        List<String> queries = List.of("orange", "apple", "Heckscheibenwaschanlage", "computer", "basket", "jabłko", "appel");
+//            List<String> queries = obtainQueries();
+        List<String> queries = List.of("orange", "apple", "Heckscheibenwaschanlage", "computer", "basket", "jabłko", "appel");
 
         try (RestClient restClient = RestClient.builder(HttpHost.create(System.getenv("ES_URL")))
             .setDefaultHeaders(new org.apache.http.Header[]{
