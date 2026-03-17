@@ -37,8 +37,9 @@ import java.net.http.HttpResponse;
 
 public class EnterpriseySearcher {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+    private static final LazyConstant<ObjectMapper> OBJECT_MAPPER = LazyConstant.of(ObjectMapper::new);
+    private static final LazyConstant<HttpClient> HTTP_CLIENT = LazyConstant.of(() ->
+        HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
     private static String ENCODER_URL = System.getenv().getOrDefault("ENCODER_URL", "http://localhost:8080/v1/embeddings");
     private static final int TOP_K = 5;
 
@@ -103,7 +104,7 @@ public class EnterpriseySearcher {
 //            "task" : "retrieval.query",
 //            "input" : [ "apple" ]
 //          }
-            ObjectNode requestBody = OBJECT_MAPPER.createObjectNode();
+            ObjectNode requestBody = OBJECT_MAPPER.get().createObjectNode();
             requestBody.putArray("input").add(text);
             requestBody.put("task", "retrieval.query");
 
@@ -113,7 +114,7 @@ public class EnterpriseySearcher {
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody.toString()))
                 .build();
 
-            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = HTTP_CLIENT.get().send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
                 throw new IOException("Failed to encode text [%s]. Status code: [%d], Response: [%s]"
@@ -140,7 +141,7 @@ public class EnterpriseySearcher {
 //             ]
 //          }
 
-            JinaEmbeddingResponse embeddingResponse = OBJECT_MAPPER.readValue(response.body(), JinaEmbeddingResponse.class);
+            JinaEmbeddingResponse embeddingResponse = OBJECT_MAPPER.get().readValue(response.body(), JinaEmbeddingResponse.class);
             if (embeddingResponse.data() != null && !embeddingResponse.data().isEmpty()) {
                 return embeddingResponse.data().getFirst().embedding();
             }
