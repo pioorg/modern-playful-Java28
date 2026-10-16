@@ -253,7 +253,7 @@ public class EnterpriseySearcher {
     }
 }
 
-record QueryWithVector(String query, List<Float> vector) {
+value record QueryWithVector(String query, List<Float> vector) {
 
     @Override
     public String toString() {
@@ -266,14 +266,14 @@ record QueryWithVector(String query, List<Float> vector) {
 
 }
 
-record Price(BigDecimal value, String currency) {
+value record Price(BigDecimal value, String currency) {
     @Override
     public String toString() {
         return value.setScale(2, RoundingMode.HALF_UP).toPlainString() + " " + currency;
     }
 }
 
-record CatalogueItem(String filename, @JsonProperty("full-path") String fullPath, Price price) {
+value record CatalogueItem(String filename, @JsonProperty("full-path") String fullPath, Price price) {
     public String toPriceString() {
         return String.format("%s (%s)", filename, formatPrice());
     }
@@ -287,7 +287,7 @@ record CatalogueItem(String filename, @JsonProperty("full-path") String fullPath
     }
 }
 
-record SearchResult(String query, List<CatalogueItem> items) {
+value record SearchResult(String query, List<CatalogueItem> items) {
     @Override
     public String toString() {
         return String.format("%s: %s", query, items().stream().map(CatalogueItem::toPriceString).toList());
