@@ -24,12 +24,13 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
+import jdk.incubator.json.Json;
+import jdk.incubator.json.JsonArray;
+import jdk.incubator.json.JsonObject;
+import jdk.incubator.json.JsonString;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,7 +38,6 @@ import java.net.http.HttpResponse;
 
 public class EnterpriseySearcher {
 
-    private static final LazyConstant<ObjectMapper> OBJECT_MAPPER = LazyConstant.of(ObjectMapper::new);
     private static final LazyConstant<HttpClient> HTTP_CLIENT = LazyConstant.of(() ->
         HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
     private static String ENCODER_URL = System.getenv().getOrDefault("ENCODER_URL", "http://localhost:8080/v1/embeddings");
@@ -104,9 +104,9 @@ public class EnterpriseySearcher {
 //            "task" : "retrieval.query",
 //            "input" : [ "apple" ]
 //          }
-            ObjectNode requestBody = OBJECT_MAPPER.get().createObjectNode();
-            requestBody.putArray("input").add(text);
-            requestBody.put("task", "retrieval.query");
+            JsonObject requestBody = JsonObject.of(Map.of(
+                "input", JsonArray.of(List.of(JsonString.of(text))),
+                "task", JsonString.of("retrieval.query")));
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(ENCODER_URL))
@@ -141,11 +141,14 @@ public class EnterpriseySearcher {
 //             ]
 //          }
 
-            JinaEmbeddingResponse embeddingResponse = OBJECT_MAPPER.get().readValue(response.body(), JinaEmbeddingResponse.class);
-            if (embeddingResponse.data() != null && !embeddingResponse.data().isEmpty()) {
-                return embeddingResponse.data().getFirst().embedding();
-            }
-            throw new IOException("Encoding operation failed: " + response.body());
+            return Json.parse(response.body())
+                .get("data")
+                .get(0)
+                .get("embedding")
+                .asList()
+                .stream()
+                .map(jsonValue -> (float) jsonValue.asDouble())
+                .toList();
 
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -290,9 +293,3 @@ record SearchResult(String query, List<CatalogueItem> items) {
         return String.format("%s: %s", query, items().stream().map(CatalogueItem::toPriceString).toList());
     }
 }
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-record JinaEmbeddingData(List<Float> embedding) {}
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-record JinaEmbeddingResponse(List<JinaEmbeddingData> data) {}
